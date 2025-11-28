@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avante World 3D - Interactive 3D Global Map</title>
+    
+    <!-- MapLibre GL JS -->
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+    
+    <!-- Three.js Import Map -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+        }
+    }
+    </script>
+    
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            background: #0a0a0a;
+            color: #ffffff;
+        }
+
+        /* Map container - full viewport */
+        #map {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* App header - enhanced for 3D experience */
+        .app-header {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(15px);
+            border-radius: 16px;
+            padding: 16px 24px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .app-title {
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .app-subtitle {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+            font-weight: 400;
+            letter-spacing: 0.3px;
+        }
+
+        /* Enhanced navigation controls styling */
+        .maplibregl-ctrl-group {
+            background: rgba(0, 0, 0, 0.85) !important;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            border-radius: 16px !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        .maplibregl-ctrl-group button {
+            background: transparent !important;
+            border: none !important;
+            color: #ffffff !important;
+            width: 44px !important;
+            height: 44px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            transition: all 0.3s ease !important;
+            border-radius: 12px !important;
+            margin: 3px !important;
+        }
+
+        .maplibregl-ctrl-group button:hover {
+            background: rgba(255, 255, 255, 0.15) !important;
+            transform: scale(1.05);
+        }
+
+        .maplibregl-ctrl-group button:active {
+            transform: scale(0.95);
+        }
+
+        /* Enhanced custom controls */
+        .custom-controls {
+            position: absolute;
+            top: 20px;
+            right: 90px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .control-group {
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .control-btn {
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            margin: 3px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: scale(1.05);
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 3D Mode indicator */
+        .mode-indicator {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(0, 150, 255, 0.9);
+            backdrop-filter: blur(15px);
+            color: #ffffff;
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 8px 32px rgba(0, 150, 255, 0.3);
+        }
+
+        /* Loading indicator - enhanced */
+        .loading-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 999;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(20px);
+            color: #ffffff;
+            padding: 30px 40px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5);
+        }
+
+        .loading-indicator.hidden {
+            display: none;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #ffffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Performance stats */
+        .performance-stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 999;
+            background: rgba(0, 0, 0, 0.7);
+            color: #ffffff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            display: none;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .app-header {
+                top: 10px;
+                left: 10px;
+                padding: 12px 18px;
+            }
+
+            .app-title {
+                font-size: 18px;
+            }
+
+            .custom-controls {
+                right: 70px;
+                gap: 8px;
+            }
+
+            .control-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 16px;
+            }
+        }
+
+        /* Overview Mini-Map */
+        .overview-map-container {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            width: 200px;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .overview-map-container:hover {
+            transform: scale(1.05);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .overview-map {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .overview-viewport {
+            position: absolute;
+            border: 2px solid #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+            pointer-events: none;
+            z-index: 1001;
+            transition: all 0.2s ease;
+        }
+
+        .overview-toggle {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            color: white;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 1002;
+            transition: all 0.2s ease;
+        }
+
+        .overview-toggle:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.1);
+        }
+
+        .overview-map-container.collapsed {
+            width: 40px;
+            height: 40px;
+        }
+
+        .overview-map-container.collapsed .overview-map {
+            display: none;
+        }
+
+        .overview-map-container.collapsed .overview-viewport {
+            display: none;
+        }
+
+        .overview-map-container.wide {
+            width: 400px;
+            height: 250px;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .overview-map-container.wide .overview-toggle {
+            right: 10px;
+            top: 10px;
+        }
+
+        /* Responsive design for overview map */
+        @media (max-width: 768px) {
+            .overview-map-container {
+                bottom: 10px;
+                left: 10px;
+                width: 150px;
+                height: 120px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .overview-map-container {
+                width: 120px;
+                height: 90px;
+            }
+
+            .overview-map-container.wide {
+                width: 90vw;
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- App Header -->
+    <div class="app-header">
+        <h1 class="app-title">Avante World 3D</h1>
+        <p class="app-subtitle">Interactive 3D Global Experience</p>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loading" class="loading-indicator">
+        <div class="loading-spinner"></div>
+        Initializing 3D World...
+    </div>
+
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- Custom Controls -->
+    <div class="custom-controls">
+        <div class="control-group">
+            <button id="tilt-up" class="control-btn" title="Tilt Up">↗</button>
+            <button id="tilt-down" class="control-btn" title="Tilt Down">↙</button>
+        </div>
+        <div class="control-group">
+            <button id="rotate-left" class="control-btn" title="Rotate Left">↶</button>
+            <button id="rotate-right" class="control-btn" title="Rotate Right">↷</button>
+        </div>
+        <div class="control-group">
+            <button id="reset-view" class="control-btn" title="Reset View">⌂</button>
+        </div>
+    </div>
+
+    <!-- 3D Mode Indicator -->
+    <div class="mode-indicator">
+        3D Mode Active
+    </div>
+
+    <!-- Performance Stats (hidden by default) -->
+    <div id="performance-stats" class="performance-stats">
+        FPS: <span id="fps">0</span> | 
+        Triangles: <span id="triangles">0</span>
+    </div>
+
+    <!-- Overview Mini-Map Component -->
+    <div class="overview-map-container" id="overview-container">
+        <div class="overview-map" id="overview-map"></div>
+        <div class="overview-viewport" id="overview-viewport"></div>
+        <button class="overview-toggle" id="overview-toggle">−</button>
+    </div>
+
+    <script type="module">
+        /**
+         * Avante World 3D - Interactive 3D Global Map
+         * 
+         * This module creates a gamified 3D experience using MapLibre GL JS and Three.js
+         * Built with MapTiler Cloud services for geographic data
+         */
+
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        /**
+         * ThreeJsLayer - Custom MapLibre layer for Three.js integration
+         * 
+         * This class implements the MapLibre GL JS custom layer interface
+         * and manages the Three.js scene, camera, and renderer
+         */
+        class ThreeJsLayer {
+            constructor(id, mapTilerStyleUrl) {
+                this.id = id;
+                this.type = 'custom';
+                this.renderingMode = '3d';
+                this.mapTilerStyleUrl = mapTilerStyleUrl;
+                
+                // Three.js components
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.controls = null;
+                
+                // Lighting
+                this.ambientLight = null;
+                this.directionalLight = null;
+                
+                // Ground and terrain
+                this.groundMesh = null;
+                
+                // Performance tracking
+                this.frameCount = 0;
+                this.lastTime = performance.now();
+                this.fps = 0;
+                
+                // 3D Roads
+                this.roadMeshes = [];
+                this.roadMaterial = null;
+                
+                // Future feature hooks
+                this.waterMeshes = [];
+                this.interactiveObjects = [];
+                
+                console.log('🎮 ThreeJsLayer initialized');
+            }
+
+            /**
+             * Called when the layer is added to the map
+             */
+            onAdd(map, gl) {
+                this.map = map;
+                this.gl = gl;
+                
+                console.log('🌍 Adding Three.js layer to map...');
+                this.buildings = [];
+                this.landmarks = [];
+                this.trees = [];
+                
+                this.initThreeJs();
+                this.setupLighting();
+                this.createSimpleGround();
+                this.setupRoadMaterial();
+                this.setupControls();
+                this.setupPerformanceMonitoring();
+                
+                // Initialize road loading
+                this.loadRoads();
+                
+                console.log('✅ Three.js layer added successfully');
+            }
+
+            /**
+             * Initialize Three.js scene, camera, and renderer
+             */
+            initThreeJs() {
+                // Create scene
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x87CEEB); // Sky blue
+                
+                // Create camera
+                this.camera = new THREE.PerspectiveCamera(
+                    28, // FOV - matches MapLibre's default
+                    window.innerWidth / window.innerHeight,
+                    0.1,
+                    1000000 // Large far plane for world-scale rendering
+                );
+                
+                // Create renderer
+                this.renderer = new THREE.WebGLRenderer({
+                    canvas: this.map.getCanvas(),
+                    context: this.gl,
+                    antialias: true,
+                    alpha: true
+                });
+                
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(window.devicePixelRatio);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+                
+                console.log('🎨 Three.js renderer initialized');
+            }
+
+            /**
+             * Setup realistic lighting for the 3D world
+             */
+            setupLighting() {
+                // Ambient light for overall illumination
+                this.ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+                this.scene.add(this.ambientLight);
+                
+                // Directional light for sun-like lighting and shadows
+                this.directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                this.directionalLight.position.set(1000, 2000, 1000);
+                this.directionalLight.castShadow = true;
+                
+                // Configure shadow properties
+                this.directionalLight.shadow.mapSize.width = 2048;
+                this.directionalLight.shadow.mapSize.height = 2048;
+                this.directionalLight.shadow.camera.near = 0.5;
+                this.directionalLight.shadow.camera.far = 1000000;
+                this.directionalLight.shadow.camera.left = -500000;
+                this.directionalLight.shadow.camera.right = 500000;
+                this.directionalLight.shadow.camera.top = 500000;
+                this.directionalLight.shadow.camera.bottom = -500000;
+                
+                this.scene.add(this.directionalLight);
+                
+                console.log('💡 Lighting setup complete');
+            }
+
+            /**
+             * Create simple flat ground mesh
+             */
+            createSimpleGround() {
+                // Create simple flat ground
+                const groundGeometry = new THREE.PlaneGeometry(40000000, 40000000, 10, 10);
+                groundGeometry.rotateX(-Math.PI / 2); // Make it horizontal
+                
+                // Simple ground material
+                const groundMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x3a5f3a, // Dark green
+                    roughness: 0.8,
+                    metalness: 0.1
+                });
+                
+                this.groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
+                this.groundMesh.receiveShadow = true;
+                this.groundMesh.position.set(0, 0, 0);
+                
+                this.scene.add(this.groundMesh);
+                
+                console.log('🌍 Simple ground created');
+            }
+
+            /**
+             * Setup road material with asphalt texture
+             */
+            setupRoadMaterial() {
+                // Create asphalt material
+                this.roadMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x2a2a2a, // Dark gray asphalt
+                    roughness: 0.9,
+                    metalness: 0.1
+                });
+                
+                // TODO: Load actual asphalt texture
+                // const textureLoader = new THREE.TextureLoader();
+                // textureLoader.load('/textures/asphalt_diffuse.jpg', (texture) => {
+                //     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+                //     texture.repeat.set(10, 10);
+                //     this.roadMaterial.map = texture;
+                //     this.roadMaterial.needsUpdate = true;
+                // });
+                
+                console.log('🛣️ Road material setup complete');
+            }
+
+            /**
+             * Load and create 3D roads
+             */
+            async loadRoads() {
+                if (!this.map) return;
+                
+                const bounds = this.map.getBounds();
+                const zoom = Math.floor(this.map.getZoom());
+                
+                console.log('🛣️ Loading roads for zoom:', zoom);
+                
+                try {
+                    const roadData = await this.fetchRoadData(bounds, zoom);
+                    this.createRoadMeshes(roadData);
+                } catch (error) {
+                    console.warn('⚠️ Failed to load road data:', error);
+                    // Create placeholder roads
+                    this.createPlaceholderRoads();
+                }
+            }
+
+            /**
+             * Fetch road vector data from MapTiler
+             */
+            async fetchRoadData(bounds, zoom) {
+                // TODO: Fetch actual road vector data from MapTiler
+                // For now, return placeholder data
+                console.log('📡 Fetching road data...');
+                
+                // Simulate API delay
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                return {
+                    roads: [
+                        // Placeholder road data
+                        {
+                            coordinates: [
+                                [bounds.getWest(), bounds.getCenter().lat],
+                                [bounds.getEast(), bounds.getCenter().lat]
+                            ],
+                            width: 10,
+                            type: 'highway'
+                        },
+                        {
+                            coordinates: [
+                                [bounds.getCenter().lng, bounds.getSouth()],
+                                [bounds.getCenter().lng, bounds.getNorth()]
+                            ],
+                            width: 8,
+                            type: 'primary'
+                        }
+                    ]
+                };
+            }
+
+            /**
+             * Create 3D road meshes from road data
+             */
+            createRoadMeshes(roadData) {
+                // Clear existing road meshes
+                this.clearRoadMeshes();
+                
+                roadData.roads.forEach((road, index) => {
+                    const roadMesh = this.createSingleRoad(road, index);
+                    if (roadMesh) {
+                        this.roadMeshes.push(roadMesh);
+                        this.scene.add(roadMesh);
+                    }
+                });
+                
+                console.log(`🛣️ Created ${this.roadMeshes.length} road meshes`);
+            }
+
+            /**
+             * Create a single 3D road mesh
+             */
+            createSingleRoad(roadData, index) {
+                const coordinates = roadData.coordinates;
+                if (coordinates.length < 2) return null;
+                
+                // Convert lng/lat to world coordinates
+                const worldCoords = coordinates.map(coord => [
+                    coord[0] * 111320, // lng to meters (approximate)
+                    coord[1] * 111320  // lat to meters (approximate)
+                ]);
+                
+                // Create road geometry
+                const roadGeometry = this.createRoadGeometry(worldCoords, roadData.width);
+                
+                // Create road mesh
+                const roadMesh = new THREE.Mesh(roadGeometry, this.roadMaterial);
+                roadMesh.position.y = 50; // Slightly above ground (scaled up)
+                roadMesh.castShadow = true;
+                roadMesh.receiveShadow = true;
+                roadMesh.userData = { type: 'road', roadType: roadData.type, index };
+                
+                return roadMesh;
+            }
+
+            /**
+             * Create road geometry from world coordinates
+             */
+            createRoadGeometry(worldCoords, width) {
+                const points = worldCoords.map(coord => new THREE.Vector3(coord[0], 0, coord[1]));
+                
+                // Create a simple extruded road
+                const curve = new THREE.CatmullRomCurve3(points);
+                const tubeGeometry = new THREE.TubeGeometry(curve, 64, width / 2, 8, false);
+                
+                return tubeGeometry;
+            }
+
+            /**
+             * Create placeholder roads for testing
+             */
+            createPlaceholderRoads() {
+                console.log('🛣️ Creating placeholder roads...');
+                
+                // Create a simple cross pattern of roads
+                const roadData = {
+                    roads: [
+                        {
+                            coordinates: [[-1000, 0], [1000, 0]],
+                            width: 20,
+                            type: 'highway'
+                        },
+                        {
+                            coordinates: [[0, -1000], [0, 1000]],
+                            width: 15,
+                            type: 'primary'
+                        }
+                    ]
+                };
+                
+                // Convert to world coordinates and create meshes
+                roadData.roads.forEach((road, index) => {
+                    const worldCoords = road.coordinates;
+                    const roadGeometry = this.createRoadGeometry(worldCoords, road.width);
+                    const roadMesh = new THREE.Mesh(roadGeometry, this.roadMaterial);
+                    roadMesh.position.y = 0.5;
+                    roadMesh.castShadow = true;
+                    roadMesh.receiveShadow = true;
+                    roadMesh.userData = { type: 'road', roadType: road.type, index };
+                    
+                    this.roadMeshes.push(roadMesh);
+                    this.scene.add(roadMesh);
+                });
+                
+                console.log('🛣️ Placeholder roads created');
+            }
+
+            /**
+             * Clear existing road meshes
+             */
+            clearRoadMeshes() {
+                this.roadMeshes.forEach(mesh => {
+                    this.scene.remove(mesh);
+                    mesh.geometry.dispose();
+                });
+                this.roadMeshes = [];
+            }
+
+            /**
+             * Setup OrbitControls for free camera navigation
+             */
+            setupControls() {
+                this.controls = new OrbitControls(this.camera, this.map.getCanvas());
+                
+                // Configure controls for smooth, game-like movement
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+                this.controls.screenSpacePanning = false;
+                this.controls.minDistance = 10;
+                this.controls.maxDistance = 50000000;
+                this.controls.maxPolarAngle = Math.PI / 2;
+                
+                // Smooth zoom
+                this.controls.zoomSpeed = 0.5;
+                this.controls.rotateSpeed = 0.5;
+                this.controls.panSpeed = 0.8;
+                
+                console.log('🎮 OrbitControls configured');
+            }
+
+            /**
+             * Setup performance monitoring
+             */
+            setupPerformanceMonitoring() {
+                // Show performance stats in development
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    document.getElementById('performance-stats').style.display = 'block';
+                }
+            }
+
+            /**
+             * Create collectible items scattered around the world
+             */
+            createCollectibles() {
+                const collectibleGeometry = new THREE.SphereGeometry(25, 8, 6);
+                const collectibleMaterial = new THREE.M
