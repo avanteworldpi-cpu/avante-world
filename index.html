@@ -1031,11 +1031,26 @@
                     this.direction = -90;
                 }
 
-                const acceleration = 0.2;
-                this.velocity.x += (targetVx - this.velocity.x) * acceleration;
-                this.velocity.y += (targetVy - this.velocity.y) * acceleration;
+                // Smooth acceleration and deceleration
+                const acceleration = 0.08;
+                const deceleration = 0.12;
 
-                this.isMoving = Math.abs(this.velocity.x) > 0.000001 || Math.abs(this.velocity.y) > 0.000001;
+                // Apply acceleration when keys are pressed
+                if (targetVx !== 0 || targetVy !== 0) {
+                    this.velocity.x += (targetVx - this.velocity.x) * acceleration;
+                    this.velocity.y += (targetVy - this.velocity.y) * acceleration;
+                } else {
+                    // Apply deceleration when no keys are pressed
+                    this.velocity.x *= (1 - deceleration);
+                    this.velocity.y *= (1 - deceleration);
+                }
+
+                // Stop completely when velocity is very small
+                const stopThreshold = 0.00000001;
+                if (Math.abs(this.velocity.x) < stopThreshold) this.velocity.x = 0;
+                if (Math.abs(this.velocity.y) < stopThreshold) this.velocity.y = 0;
+
+                this.isMoving = Math.abs(this.velocity.x) > stopThreshold || Math.abs(this.velocity.y) > stopThreshold;
 
                 if (this.isMoving) {
                     this.position.lng += this.velocity.x;
@@ -1045,7 +1060,10 @@
 
                     this.animateCharacter();
 
-                    this.map.panTo([this.position.lng, this.position.lat], { duration: 200 });
+                    // Smooth camera follow without fixed duration
+                    this.map.jumpTo({
+                        center: [this.position.lng, this.position.lat]
+                    });
                 }
             }
 
