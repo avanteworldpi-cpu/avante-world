@@ -6,11 +6,17 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export const AVATAR_URLS = {
-  male: 'https://models.readyplayer.me/male.glb',
-  female: 'https://models.readyplayer.me/female.glb'
+  male_1: 'https://models.readyplayer.me/63e7b16d27f8800c0e3c1b5f.glb',
+  male_2: 'https://models.readyplayer.me/65c0f3f8c8e6b5a2d9c4e1f0.glb',
+  male_casual: 'https://models.readyplayer.me/65c0f3f8c8e6b5a2d9c4e1f3.glb',
+  female_1: 'https://models.readyplayer.me/63e7b16d27f8800c0e3c1b60.glb',
+  female_2: 'https://models.readyplayer.me/65c0f3f8c8e6b5a2d9c4e1f1.glb',
+  female_casual: 'https://models.readyplayer.me/65c0f3f8c8e6b5a2d9c4e1f4.glb',
+  neutral_1: 'https://models.readyplayer.me/65c0f3f8c8e6b5a2d9c4e1f2.glb',
+  neutral_2: 'https://models.readyplayer.me/65c0f3f8c8e6b5a2d9c4e1f5.glb'
 };
 
-export type AvatarType = 'male' | 'female';
+export type AvatarType = keyof typeof AVATAR_URLS;
 
 export async function getUserAvatarPreference(): Promise<AvatarType | null> {
   try {
