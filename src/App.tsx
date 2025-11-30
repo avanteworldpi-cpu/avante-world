@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
 import { AvatarSelector } from './components/AvatarSelector';
+import { MapSelector } from './components/MapSelector';
+import { ThreeJSScene } from './components/ThreeJSScene';
 import { supabase, getUserAvatarPreference, setUserAvatarPreference, AVATAR_URLS, AvatarType } from './lib/supabase';
 
 function App() {
   const [user, setUser] = useState<any>(null);
   const [avatarSelected, setAvatarSelected] = useState(false);
+  const [locationSelected, setLocationSelected] = useState(false);
+  const [startLocation, setStartLocation] = useState<[number, number] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -89,10 +93,29 @@ function App() {
     return <AvatarSelector onSelect={handleAvatarSelect} isLoading={isLoading} />;
   }
 
+  if (!locationSelected) {
+    return (
+      <MapSelector
+        onLocationSelect={(lat: number, lng: number) => {
+          setStartLocation([lat, lng]);
+          setLocationSelected(true);
+        }}
+      />
+    );
+  }
+
+  if (!startLocation) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center">
+        <p className="text-white">Loading game...</p>
+      </div>
+    );
+  }
+
+  const avatarUrl = localStorage.getItem('sharedAvatarUrl');
+
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <p>Welcome to Avante World 3D! Your avatar is ready.</p>
-    </div>
+    <ThreeJSScene avatarUrl={avatarUrl} startLocation={startLocation} />
   );
 }
 

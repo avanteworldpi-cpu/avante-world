@@ -16,12 +16,14 @@ export class AvatarCharacter {
   private mixer: THREE.AnimationMixer | null = null;
   private currentAction: THREE.AnimationAction | null = null;
   private idleAction: THREE.AnimationAction | null = null;
+  private walkAction: THREE.AnimationAction | null = null;
 
   private velocity = { x: 0, y: 0 };
   private speed: number;
   private keys: { [key: string]: boolean } = {};
   private direction = 0;
   private isMoving = false;
+  private wasMoving = false;
   private animationFrame = 0;
   private animationSpeed = 0.1;
 
@@ -73,6 +75,11 @@ export class AvatarCharacter {
       const idleClip = getAnimationClip(loaded.animations, 'idle');
       if (idleClip && this.mixer) {
         this.idleAction = playAnimation(this.mixer, idleClip, true);
+      }
+
+      const walkClip = getAnimationClip(loaded.animations, 'walk');
+      if (walkClip) {
+        this.walkAction = this.mixer.clipAction(walkClip);
       }
 
       console.log('Avatar model loaded and added to scene');
@@ -148,6 +155,26 @@ export class AvatarCharacter {
         this.position.lat += this.velocity.y;
 
         this.avatarModel.rotation.y = THREE.MathUtils.degToRad(this.direction);
+
+        if (!this.wasMoving && this.mixer) {
+          if (this.idleAction) {
+            this.idleAction.stop();
+          }
+          if (this.walkAction) {
+            this.walkAction.reset();
+            this.walkAction.play();
+          }
+        }
+        this.wasMoving = true;
+      } else if (this.wasMoving && this.mixer) {
+        if (this.walkAction) {
+          this.walkAction.stop();
+        }
+        if (this.idleAction) {
+          this.idleAction.reset();
+          this.idleAction.play();
+        }
+        this.wasMoving = false;
       }
     }
   }
