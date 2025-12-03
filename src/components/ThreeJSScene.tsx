@@ -26,8 +26,8 @@ export function ThreeJSScene({ avatarUrl, startLocation }: ThreeJSSceneProps) {
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-    camera.position.set(0, 2, 5);
-    camera.lookAt(0, 1, 0);
+    camera.position.set(0, 1.5, 6);
+    camera.lookAt(0, 0.8, 0);
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -93,12 +93,9 @@ export function ThreeJSScene({ avatarUrl, startLocation }: ThreeJSSceneProps) {
 
       const avatarModel = avatar.getModel();
       if (avatarModel) {
-        const targetDistance = 5;
-        const targetHeight = 2;
-        const horizontalDistance = Math.sqrt(
-          Math.pow(camera.position.x - avatarModel.position.x, 2) +
-          Math.pow(camera.position.z - avatarModel.position.z, 2)
-        );
+        const targetDistance = 6;
+        const targetHeight = 1.5;
+        const targetLookHeight = 0.8;
 
         const direction = new THREE.Vector3();
         direction.subVectors(avatarModel.position, camera.position);
@@ -113,7 +110,7 @@ export function ThreeJSScene({ avatarUrl, startLocation }: ThreeJSSceneProps) {
         camera.position.y += (desiredY - camera.position.y) * smoothing;
         camera.position.z += (desiredZ - camera.position.z) * smoothing;
 
-        camera.lookAt(avatarModel.position.x, avatarModel.position.y + 1, avatarModel.position.z);
+        camera.lookAt(avatarModel.position.x, avatarModel.position.y + targetLookHeight, avatarModel.position.z);
       }
 
       renderer.render(scene, camera);
