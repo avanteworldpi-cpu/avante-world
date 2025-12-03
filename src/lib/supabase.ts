@@ -8,9 +8,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export type AvatarType = 'avatar_1' | 'avatar_2' | 'avatar_3';
 
 export const AVATAR_URLS: Record<AvatarType, string> = {
-  avatar_1: 'https://models.readyplayer.me/6924de287b7a88e1f6b52c37.glb',
-  avatar_2: 'https://models.readyplayer.me/6924de287b7a88e1f6b52c37.glb',
-  avatar_3: 'https://models.readyplayer.me/6924de287b7a88e1f6b52c37.glb'
+  avatar_1: 'https://models.readyplayer.me/65b8c5df1e3e30001fa5c457.glb',
+  avatar_2: 'https://models.readyplayer.me/65b8c5df1e3e30001fa5c459.glb',
+  avatar_3: 'https://models.readyplayer.me/65b8c5df1e3e30001fa5c45a.glb'
 };
 
 export async function getUserAvatarPreference(): Promise<AvatarType | null> {
