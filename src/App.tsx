@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AvatarSelector } from './components/AvatarSelector';
 import { MapSelector } from './components/MapSelector';
-import { ThreeJSScene } from './components/ThreeJSScene';
+import { AvatarMapView } from './components/AvatarMapView';
 import { supabase, getUserAvatarPreference, setUserAvatarPreference, AVATAR_URLS, AvatarType } from './lib/supabase';
 
 function App() {
@@ -34,7 +34,7 @@ function App() {
   if (!startLocation) return <div>Loading game...</div>;
 
   const avatarUrl = localStorage.getItem('sharedAvatarUrl');
-  return <ThreeJSScene avatarUrl={avatarUrl} startLocation={startLocation} />;
+  return <AvatarMapView avatarUrl={avatarUrl} startLocation={startLocation} />;
 }
 
 export default App;

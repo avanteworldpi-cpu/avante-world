@@ -1,3 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.avatar-direction-marker {
+  transition: transform 0.1s linear;
+}
