@@ -6,17 +6,24 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export const AVATAR_URLS = {
-  male_1: 'https://models.readyplayer.me/63e7b16d27f8800c0e3c1b5f.glb',
-  male_2: 'https://models.readyplayer.me/65c0f3f8c8e6b5a2d9c4e1f0.glb',
-  male_casual: 'https://models.readyplayer.me/65c0f3f8c8e6b5a2d9c4e1f3.glb',
-  female_1: 'https://models.readyplayer.me/63e7b16d27f8800c0e3c1b60.glb',
-  female_2: 'https://models.readyplayer.me/65c0f3f8c8e6b5a2d9c4e1f1.glb',
-  female_casual: 'https://models.readyplayer.me/65c0f3f8c8e6b5a2d9c4e1f4.glb',
-  neutral_1: 'https://models.readyplayer.me/65c0f3f8c8e6b5a2d9c4e1f2.glb',
-  neutral_2: 'https://models.readyplayer.me/65c0f3f8c8e6b5a2d9c4e1f5.glb'
+  avatar_1: 'https://models.readyplayer.me/6924de287b7a88e1f6b52c37.glb'
 };
 
 export type AvatarType = keyof typeof AVATAR_URLS;
+
+export interface AvatarOption {
+  id: AvatarType;
+  name: string;
+  thumbnailUrl: string;
+}
+
+export const AVAILABLE_AVATARS: AvatarOption[] = [
+  {
+    id: 'avatar_1',
+    name: 'Avatar 1',
+    thumbnailUrl: 'https://avante-world.readyplayer.me/avatar?id=6924de287b7a88e1f6b52c37'
+  }
+];
 
 export async function getUserAvatarPreference(): Promise<AvatarType | null> {
   try {

@@ -50,7 +50,7 @@ export class AvatarCharacter {
   private getDefaultAvatarUrl(): string {
     const storedUrl = localStorage.getItem('sharedAvatarUrl');
     if (storedUrl) return storedUrl;
-    return AVATAR_URLS.male;
+    return AVATAR_URLS.avatar_1;
   }
 
   private async init(): Promise<void> {
