@@ -76,7 +76,7 @@ export function AvatarMapView({ avatarUrl, startLocation }: AvatarMapViewProps) 
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowShadowMap;
     threeContainerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
