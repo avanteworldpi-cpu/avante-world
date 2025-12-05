@@ -24,10 +24,10 @@ function App() {
     checkPreference();
   }, []);
 
-  if (isLoading) return <div className="w-full h-screen bg-gray-900 flex items-center justify-center text-white">Loading...</div>;
+  if (isLoading) return <div className="w-full h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center"><div className="text-center"><div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div><p className="text-xl font-semibold text-gray-900">Loading...</p></div></div>;
   if (!avatarSelected) return <AvatarSelector onSelect={async (t) => { await setUserAvatarPreference(t); localStorage.setItem('sharedAvatarUrl', AVATAR_URLS[t]); setAvatarSelected(true); }} />;
   if (!locationSelected) return <MapSelector onLocationSelect={(lat, lng) => { setStartLocation([lat, lng]); setLocationSelected(true); }} />;
-  if (!startLocation) return <div className="w-full h-screen bg-gray-900 flex items-center justify-center text-white">Loading game...</div>;
+  if (!startLocation) return <div className="w-full h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center"><div className="text-center"><div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div><p className="text-xl font-semibold text-gray-900">Loading game...</p></div></div>;
 
   const avatarUrl = localStorage.getItem('sharedAvatarUrl');
   return <AvatarMapView avatarUrl={avatarUrl} startLocation={startLocation} />;
