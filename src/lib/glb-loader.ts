@@ -3,6 +3,9 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 
+// ⭐ Required for Ready Player Me (VRM models)
+import { VRM, VRMSchema, VRMUtils } from '@pixiv/three-vrm';
+
 export interface LoadedAvatar {
   scene: THREE.Group;
   animations: THREE.AnimationClip[];
@@ -11,43 +14,50 @@ export interface LoadedAvatar {
 
 const loader = new GLTFLoader();
 
-// 🚀 REQUIRED FOR READY PLAYER ME (DRACO-compressed models)
+// DRACO decompression
 const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
 loader.setDRACOLoader(dracoLoader);
 
-// 🚀 Sometimes RPM uses Basis / KTX2 for textures
+// KTX2 texture support
 const ktx2Loader = new KTX2Loader();
 ktx2Loader
   .setTranscoderPath('https://www.gstatic.com/basis-universal/decoders/')
   .detectSupport(new THREE.WebGLRenderer());
 loader.setKTX2Loader(ktx2Loader);
 
-// 🚀 RPM models require CORS
 loader.crossOrigin = 'anonymous';
 
-// Normalize URL if it's an RPM avatar link
+// ---------------------------------------------------------
+// READY PLAYER ME URL FIX
+// ---------------------------------------------------------
 function normalizeRPMUrl(url: string): string {
-  if (url.includes('readyplayer.me')) {
-    if (!url.endsWith('.glb')) {
-      return `${url}.glb`;
-    }
-  }
+  if (!url.includes('readyplayer.me')) return url;
+
+  // Always append ?meshLod=0 for full quality
+  if (!url.includes('.glb')) return `${url}.glb?meshLod=0`;
+
   return url;
 }
 
+// ---------------------------------------------------------
+// MAIN AVATAR LOADER — NOW VRM COMPATIBLE
+// ---------------------------------------------------------
 export async function loadAvatarGLB(url: string): Promise<LoadedAvatar> {
   const finalUrl = normalizeRPMUrl(url);
 
   return new Promise((resolve, reject) => {
     loader.load(
       finalUrl,
-      (gltf) => {
-        if (!gltf || !gltf.scene) {
-          return reject(new Error('GLTF loaded but no scene found.'));
-        }
 
-        const scene = gltf.scene;
+      async (gltf) => {
+        // 🚀 Convert GLTF → VRM
+        const vrm = await VRM.from(gltf);
+
+        // Fix rotations & unnormalized bones
+        VRMUtils.removeUnnecessaryJoints(vrm.scene);
+
+        const scene = vrm.scene; // VRM ready avatar
         const animations = gltf.animations || [];
         const mixer = new THREE.AnimationMixer(scene);
 
@@ -56,16 +66,11 @@ export async function loadAvatarGLB(url: string): Promise<LoadedAvatar> {
             const mesh = node as THREE.Mesh;
             mesh.castShadow = true;
             mesh.receiveShadow = true;
-
-            // Force materials to work properly
-            if (mesh.material) {
-              mesh.material.needsUpdate = true;
-            }
           }
         });
 
-        // Avoid microscopic avatars
-        scene.scale.set(1, 1, 1);
+        // RPM avatars are too small — scale properly
+        scene.scale.set(1.0, 1.0, 1.0);
         scene.position.set(0, 0, 0);
 
         resolve({
@@ -74,15 +79,20 @@ export async function loadAvatarGLB(url: string): Promise<LoadedAvatar> {
           mixer,
         });
       },
+
       undefined,
+
       (error) => {
-        console.error('Error loading avatar GLB:', error);
+        console.error('RPM Avatar failed to load:', error);
         reject(error);
       }
     );
   });
 }
 
+// ---------------------------------------------------------
+// ANIMATION HELPERS
+// ---------------------------------------------------------
 export function getAnimationClip(
   animations: THREE.AnimationClip[],
   name: string
@@ -107,7 +117,9 @@ export function stopAnimation(action: THREE.AnimationAction): void {
   action.stop();
 }
 
-// Placeholder
+// ---------------------------------------------------------
+// FALLBACK PLACEHOLDER SPHERE CHARACTER
+// ---------------------------------------------------------
 export function createIdleCharacter(): THREE.Group {
   const group = new THREE.Group();
 
