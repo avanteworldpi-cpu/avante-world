@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
 
 // ⭐ Required for Ready Player Me (VRM models)
-import { VRM, VRMSchema, VRMUtils } from '@pixiv/three-vrm';
+import { VRM, VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
 
 export interface LoadedAvatar {
   scene: THREE.Group;
@@ -13,6 +13,11 @@ export interface LoadedAvatar {
 }
 
 const loader = new GLTFLoader();
+
+// VRM support for Ready Player Me
+loader.register((parser) => {
+  return new VRMLoaderPlugin(parser);
+});
 
 // DRACO decompression
 const dracoLoader = new DRACOLoader();
@@ -50,14 +55,21 @@ export async function loadAvatarGLB(url: string): Promise<LoadedAvatar> {
     loader.load(
       finalUrl,
 
-      async (gltf) => {
-        // 🚀 Convert GLTF → VRM
-        const vrm = await VRM.from(gltf);
+      (gltf) => {
+        // Check if this is a VRM model
+        const vrm = gltf.userData.vrm as VRM | undefined;
 
-        // Fix rotations & unnormalized bones
-        VRMUtils.removeUnnecessaryJoints(vrm.scene);
+        let scene: THREE.Group;
 
-        const scene = vrm.scene; // VRM ready avatar
+        if (vrm) {
+          // Fix rotations & unnormalized bones for VRM
+          VRMUtils.removeUnnecessaryJoints(vrm.scene);
+          scene = vrm.scene;
+        } else {
+          // Regular GLTF model
+          scene = gltf.scene;
+        }
+
         const animations = gltf.animations || [];
         const mixer = new THREE.AnimationMixer(scene);
 
@@ -69,7 +81,7 @@ export async function loadAvatarGLB(url: string): Promise<LoadedAvatar> {
           }
         });
 
-        // RPM avatars are too small — scale properly
+        // RPM avatars are properly scaled
         scene.scale.set(1.0, 1.0, 1.0);
         scene.position.set(0, 0, 0);
 
