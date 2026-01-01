@@ -1,10 +1,5 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
-import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
-
-// ⭐ Required for Ready Player Me (VRM models)
-import { VRM, VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 export interface LoadedAvatar {
   scene: THREE.Group;
@@ -12,64 +7,15 @@ export interface LoadedAvatar {
   mixer: THREE.AnimationMixer;
 }
 
-const loader = new GLTFLoader();
-
-// VRM support for Ready Player Me
-loader.register((parser) => {
-  return new VRMLoaderPlugin(parser);
-});
-
-// DRACO decompression
-const dracoLoader = new DRACOLoader();
-dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
-loader.setDRACOLoader(dracoLoader);
-
-// KTX2 texture support
-const ktx2Loader = new KTX2Loader();
-ktx2Loader
-  .setTranscoderPath('https://www.gstatic.com/basis-universal/decoders/')
-  .detectSupport(new THREE.WebGLRenderer());
-loader.setKTX2Loader(ktx2Loader);
-
-loader.crossOrigin = 'anonymous';
-
-// ---------------------------------------------------------
-// READY PLAYER ME URL FIX
-// ---------------------------------------------------------
-function normalizeRPMUrl(url: string): string {
-  if (!url.includes('readyplayer.me')) return url;
-
-  // Always append ?meshLod=0 for full quality
-  if (!url.includes('.glb')) return `${url}.glb?meshLod=0`;
-
-  return url;
-}
-
-// ---------------------------------------------------------
-// MAIN AVATAR LOADER — NOW VRM COMPATIBLE
-// ---------------------------------------------------------
 export async function loadAvatarGLB(url: string): Promise<LoadedAvatar> {
-  const finalUrl = normalizeRPMUrl(url);
+  const loader = new GLTFLoader();
+  loader.crossOrigin = 'anonymous';
 
   return new Promise((resolve, reject) => {
     loader.load(
-      finalUrl,
-
+      url,
       (gltf) => {
-        // Check if this is a VRM model
-        const vrm = gltf.userData.vrm as VRM | undefined;
-
-        let scene: THREE.Group;
-
-        if (vrm) {
-          // Fix rotations & unnormalized bones for VRM
-          VRMUtils.removeUnnecessaryJoints(vrm.scene);
-          scene = vrm.scene;
-        } else {
-          // Regular GLTF model
-          scene = gltf.scene;
-        }
-
+        const scene = gltf.scene;
         const animations = gltf.animations || [];
         const mixer = new THREE.AnimationMixer(scene);
 
@@ -81,21 +27,14 @@ export async function loadAvatarGLB(url: string): Promise<LoadedAvatar> {
           }
         });
 
-        // RPM avatars are properly scaled
-        scene.scale.set(1.0, 1.0, 1.0);
+        scene.scale.set(1, 1, 1);
         scene.position.set(0, 0, 0);
 
-        resolve({
-          scene,
-          animations,
-          mixer,
-        });
+        resolve({ scene, animations, mixer });
       },
-
       undefined,
-
       (error) => {
-        console.error('RPM Avatar failed to load:', error);
+        console.error('Failed to load avatar:', error);
         reject(error);
       }
     );
