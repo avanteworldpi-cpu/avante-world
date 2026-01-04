@@ -18,8 +18,12 @@ function App() {
       if (user) {
         const preference = await getUserAvatarPreference();
         if (preference) {
+          if (preference in AVATAR_URLS) {
+            localStorage.setItem('sharedAvatarUrl', AVATAR_URLS[preference as AvatarType]);
+          } else {
+            localStorage.setItem('sharedAvatarUrl', preference);
+          }
           setAvatarSelected(true);
-          localStorage.setItem('sharedAvatarUrl', AVATAR_URLS[preference]);
         }
       }
       setIsLoading(false);
@@ -29,7 +33,7 @@ function App() {
 
   if (isLoading) return <div>Loading...</div>;
   if (!user) return <div>Please log in</div>;
-  if (!avatarSelected) return <AvatarSelector onSelect={async (t) => { await setUserAvatarPreference(t); localStorage.setItem('sharedAvatarUrl', AVATAR_URLS[t]); setAvatarSelected(true); }} />;
+  if (!avatarSelected) return <AvatarSelector onSelect={() => setAvatarSelected(true)} />;
   if (!locationSelected) return <MapSelector onLocationSelect={(lat, lng) => { setStartLocation([lat, lng]); setLocationSelected(true); }} />;
   if (!startLocation) return <div>Loading game...</div>;
 
