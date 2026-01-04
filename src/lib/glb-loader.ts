@@ -12,8 +12,12 @@ export async function loadAvatarGLB(url: string): Promise<LoadedAvatar> {
   loader.crossOrigin = 'anonymous';
 
   return new Promise((resolve, reject) => {
+    const optimizedUrl = url.includes('readyplayer.me')
+      ? url + (url.includes('?') ? '&' : '?') + 'quality=medium&lod=0&textureAtlas=1024'
+      : url;
+
     loader.load(
-      url,
+      optimizedUrl,
       (gltf) => {
         const scene = gltf.scene;
         const animations = gltf.animations || [];
