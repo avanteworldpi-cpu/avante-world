@@ -12,12 +12,14 @@ export async function loadAvatarGLB(url: string): Promise<LoadedAvatar> {
   loader.crossOrigin = 'anonymous';
 
   return new Promise((resolve, reject) => {
-    const optimizedUrl = url.includes('readyplayer.me')
-      ? url + (url.includes('?') ? '&' : '?') + 'quality=medium&lod=0&textureAtlas=1024'
-      : url;
+    let finalUrl = url;
+
+    if (url.includes('readyplayer.me')) {
+      finalUrl = url + (url.includes('?') ? '&' : '?') + 'quality=medium&lod=0&textureAtlas=1024';
+    }
 
     loader.load(
-      optimizedUrl,
+      finalUrl,
       (gltf) => {
         const scene = gltf.scene;
         const animations = gltf.animations || [];
@@ -38,7 +40,7 @@ export async function loadAvatarGLB(url: string): Promise<LoadedAvatar> {
       },
       undefined,
       (error) => {
-        console.error('Failed to load avatar:', error);
+        console.error('Failed to load avatar from', finalUrl, error);
         reject(error);
       }
     );

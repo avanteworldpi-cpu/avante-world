@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { AvatarSelector } from './components/AvatarSelector';
 import { MapSelector } from './components/MapSelector';
 import { AvatarMapView } from './components/AvatarMapView';
-import { supabase, getUserAvatarPreference, setUserAvatarPreference, AVATAR_URLS, AvatarType } from './lib/supabase';
+import { supabase } from './lib/supabase';
 
 function App() {
   const [user, setUser] = useState<any>(null);
@@ -15,17 +15,6 @@ function App() {
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
-      if (user) {
-        const preference = await getUserAvatarPreference();
-        if (preference) {
-          if (preference in AVATAR_URLS) {
-            localStorage.setItem('sharedAvatarUrl', AVATAR_URLS[preference as AvatarType]);
-          } else {
-            localStorage.setItem('sharedAvatarUrl', preference);
-          }
-          setAvatarSelected(true);
-        }
-      }
       setIsLoading(false);
     };
     checkAuth();

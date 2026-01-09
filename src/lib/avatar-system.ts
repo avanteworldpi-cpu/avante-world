@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { loadAvatarGLB, getAnimationClip, playAnimation, stopAnimation, createIdleCharacter } from './glb-loader';
-import { AVATAR_URLS, AvatarType } from './supabase';
+import { AVATAR_URLS, AvatarType, SHARED_AVATAR_URL } from './supabase';
 
 export interface AvatarConfig {
   scale?: number;
@@ -50,7 +50,7 @@ export class AvatarCharacter {
   private getDefaultAvatarUrl(): string {
     const storedUrl = localStorage.getItem('sharedAvatarUrl');
     if (storedUrl) return storedUrl;
-    return AVATAR_URLS.avatar_1;
+    return SHARED_AVATAR_URL;
   }
 
   private async init(): Promise<void> {
