@@ -414,6 +414,7 @@
 
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
         /**
          * ThreeJsLayer - Custom MapLibre layer for Three.js integration
@@ -449,14 +450,77 @@
                 // 3D Roads
                 this.roadMeshes = [];
                 this.roadMaterial = null;
-                
+
+                // >>> CHARACTER SUPPORT (ADD)
+                this.character = null;
+                this.characterMixer = null;
+                this.characterClock = new THREE.Clock();
+                // <<< CHARACTER SUPPORT (END)
+
                 // Future feature hooks
                 this.waterMeshes = [];
                 this.interactiveObjects = [];
+
+                // >>> MAPLIBRE RENDER LOOP (ADD)
+                render(gl, matrix) {
+                    if (this.characterMixer) {
+                        this.characterMixer.update(this.characterClock.getDelta());
+                    }
+                
+                    if (this.controls) this.controls.update();
+                
+                    this.renderer.resetState();
+                    this.renderer.render(this.scene, this.camera);
+                    this.map.triggerRepaint();
+                }
+                // <<< MAPLIBRE RENDER LOOP (END)
+
                 
                 console.log('🎮 ThreeJsLayer initialized');
             }
 
+
+            // >>> CHARACTER LOADER (ADD)
+            loadCharacter() {
+                const loader = new GLTFLoader();
+            
+                loader.load(
+                    '/models/character.glb', // ensure this path exists
+                    (gltf) => {
+                        const model = gltf.scene;
+            
+                        // Scale for your massive world units
+                        model.scale.set(500, 500, 500);
+                        model.position.set(0, 0, 0);
+                        model.rotation.set(0, Math.PI, 0);
+            
+                        model.traverse((node) => {
+                            if (node.isMesh) {
+                                node.castShadow = true;
+                                node.receiveShadow = true;
+                                node.frustumCulled = false;
+                            }
+                        });
+            
+                        this.scene.add(model);
+                        this.character = model;
+            
+                        if (gltf.animations && gltf.animations.length > 0) {
+                            this.characterMixer = new THREE.AnimationMixer(model);
+                            this.characterMixer
+                                .clipAction(gltf.animations[0])
+                                .play();
+                        }
+            
+                        console.log('🧍 Character loaded');
+                    },
+                    undefined,
+                    (error) => console.error('❌ GLB load failed', error)
+                );
+            }
+            // <<< CHARACTER LOADER (END)
+
+            
             /**
              * Called when the layer is added to the map
              */
@@ -470,6 +534,7 @@
                 this.trees = [];
                 
                 this.initThreeJs();
+                this.loadCharacter();
                 this.setupLighting();
                 this.createSimpleGround();
                 this.setupRoadMaterial();
@@ -497,6 +562,11 @@
                     0.1,
                     1000000 // Large far plane for world-scale rendering
                 );
+
+                // >>> CAMERA VISIBILITY FIX (ADD)
+                this.camera.position.set(0, 800, 2000);
+                this.camera.lookAt(0, 0, 0);
+                // <<< CAMERA VISIBILITY FIX (END)
                 
                 // Create renderer
                 this.renderer = new THREE.WebGLRenderer({
