@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPin } from 'lucide-react';
+import { MapPin, AlertCircle, Loader2 } from 'lucide-react';
+import { snapToNearestRoad } from '../lib/road-snapper';
 
 interface MapSelectorProps {
   onLocationSelect: (lat: number, lng: number) => void;
@@ -11,6 +12,9 @@ export function MapSelector({ onLocationSelect }: MapSelectorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+  const [isSnapping, setIsSnapping] = useState(false);
+  const [snappedRoadName, setSnappedRoadName] = useState<string | null>(null);
+  const [lastSnappedLocation, setLastSnappedLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -36,9 +40,18 @@ export function MapSelector({ onLocationSelect }: MapSelectorProps) {
     markerRef.current = marker;
     mapRef.current = map;
 
-    const handleMapClick = (e: L.LeafletMouseEvent) => {
+    const handleMapClick = async (e: L.LeafletMouseEvent) => {
       const { lat, lng } = e.latlng;
       marker.setLatLng([lat, lng]);
+
+      setIsSnapping(true);
+      setSnappedRoadName(null);
+
+      const snapped = await snapToNearestRoad(lat, lng);
+      marker.setLatLng([snapped.lat, snapped.lng]);
+      setLastSnappedLocation({ lat: snapped.lat, lng: snapped.lng });
+      setSnappedRoadName(snapped.roadName || null);
+      setIsSnapping(false);
     };
 
     map.on('click', handleMapClick);
@@ -65,15 +78,28 @@ export function MapSelector({ onLocationSelect }: MapSelectorProps) {
           <div>
             <h2 className="font-semibold text-gray-900 mb-1">Select Starting Location</h2>
             <p className="text-sm text-gray-600 mb-3">Click on the map to set your starting position</p>
+            {isSnapping && (
+              <div className="flex items-center gap-2 text-sm text-blue-600 mt-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Snapping to nearest road...
+              </div>
+            )}
+            {snappedRoadName && lastSnappedLocation && (
+              <div className="mt-3 pt-3 border-t border-gray-200">
+                <p className="text-xs text-gray-500 mb-1">Snapped to road:</p>
+                <p className="text-sm font-medium text-green-600">{snappedRoadName}</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       <button
         onClick={handleStart}
-        className="absolute bottom-6 right-6 z-50 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-lg"
+        disabled={isSnapping}
+        className="absolute bottom-6 right-6 z-50 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium shadow-lg"
       >
-        Start Adventure
+        {isSnapping ? 'Preparing...' : 'Start Adventure'}
       </button>
     </div>
   );
