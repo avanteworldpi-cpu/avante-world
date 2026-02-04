@@ -78,3 +78,224 @@ export async function setCustomAvatarUrl(avatarUrl: string): Promise<boolean> {
     return false;
   }
 }
+
+export interface MarketplaceAvatar {
+  id: string;
+  name: string;
+  gender_type: 'male' | 'female';
+  glb_file_path: string;
+  thumbnail_url: string | null;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserCustomAvatar {
+  id: string;
+  user_id: string;
+  filename: string;
+  storage_path: string;
+  file_type: 'glb' | 'gltf';
+  file_size: number;
+  uploaded_at: string;
+  deleted_at: string | null;
+}
+
+export interface UserAvatarSelection {
+  id: string;
+  user_id: string;
+  selected_avatar_id: string | null;
+  is_custom: boolean;
+  custom_avatar_path: string | null;
+  selected_at: string;
+  updated_at: string;
+}
+
+export async function getMarketplaceAvatars(genderType?: 'male' | 'female'): Promise<MarketplaceAvatar[]> {
+  try {
+    let query = supabase
+      .from('marketplace_avatars')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (genderType) {
+      query = query.eq('gender_type', genderType);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching marketplace avatars:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error in getMarketplaceAvatars:', error);
+    return [];
+  }
+}
+
+export async function getMarketplaceAvatarById(id: string): Promise<MarketplaceAvatar | null> {
+  try {
+    const { data, error } = await supabase
+      .from('marketplace_avatars')
+      .select('*')
+      .eq('id', id)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching marketplace avatar:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in getMarketplaceAvatarById:', error);
+    return null;
+  }
+}
+
+export async function getUserCustomAvatars(): Promise<UserCustomAvatar[]> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('user_custom_avatars')
+      .select('*')
+      .eq('user_id', user.id)
+      .is('deleted_at', null)
+      .order('uploaded_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching custom avatars:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error in getUserCustomAvatars:', error);
+    return [];
+  }
+}
+
+export async function saveUserAvatarSelection(
+  selectedAvatarId: string | null,
+  isCustom: boolean,
+  customAvatarPath?: string
+): Promise<UserAvatarSelection | null> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase
+      .from('user_avatar_selections')
+      .upsert({
+        user_id: user.id,
+        selected_avatar_id: selectedAvatarId,
+        is_custom: isCustom,
+        custom_avatar_path: customAvatarPath || null,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id' })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error saving avatar selection:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in saveUserAvatarSelection:', error);
+    return null;
+  }
+}
+
+export async function getUserAvatarSelection(): Promise<UserAvatarSelection | null> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase
+      .from('user_avatar_selections')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error fetching avatar selection:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in getUserAvatarSelection:', error);
+    return null;
+  }
+}
+
+export async function addCustomAvatar(
+  filename: string,
+  storagePath: string,
+  fileType: 'glb' | 'gltf',
+  fileSize: number
+): Promise<UserCustomAvatar | null> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase
+      .from('user_custom_avatars')
+      .insert({
+        user_id: user.id,
+        filename,
+        storage_path: storagePath,
+        file_type: fileType,
+        file_size: fileSize
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding custom avatar:', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in addCustomAvatar:', error);
+    return null;
+  }
+}
+
+export async function deleteCustomAvatar(id: string): Promise<boolean> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    const { error } = await supabase
+      .from('user_custom_avatars')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error deleting custom avatar:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in deleteCustomAvatar:', error);
+    return false;
+  }
+}
+
+export function getAvatarStorageUrl(path: string): string {
+  return `${supabaseUrl}/storage/v1/object/public/avatars/${path}`;
+}

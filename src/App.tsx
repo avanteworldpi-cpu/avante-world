@@ -26,7 +26,7 @@ function App() {
   if (!locationSelected) return <MapSelector onLocationSelect={(lat, lng) => { setStartLocation([lat, lng]); setLocationSelected(true); }} />;
   if (!startLocation) return <div>Loading game...</div>;
 
-  const avatarUrl = localStorage.getItem('sharedAvatarUrl');
+  const avatarUrl = localStorage.getItem('selectedAvatarUrl') || localStorage.getItem('sharedAvatarUrl');
   return <AvatarMapView avatarUrl={avatarUrl} startLocation={startLocation} />;
 }
 
